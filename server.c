@@ -10,6 +10,13 @@
 #include <unistd.h>
 
 // REFERENCE TAKEN FROM BEEJ'S GUIDE TO NETWORK PROGRAMMING
+struct packet{
+        unsigned int total_frag;
+        unsigned int frag_no;
+        unsigned int size;
+        char* filename;
+        char filedata[1000];
+};
 
 void *get_in_addr(struct sockaddr *sa){
     if (sa->sa_family == AF_INET){
@@ -80,6 +87,12 @@ int main(int argc, char* argv[]){
 
     printf("server: packet received\n");
 
+    char *protocol = strtok(buf, " ");
+    char *filename = strtok(NULL, " ");
+
+    printf("file name: %s\n", filename);
+
+
     char to_cmp[100];
     to_cmp[0] = 'f';
     to_cmp[1] = 't';
@@ -102,6 +115,39 @@ int main(int argc, char* argv[]){
         bytes_sent = sendto(sockfd, msg, strlen(msg), 0, (struct sockaddr*) &their_addr, addr_len);
     }
 
+    
+    // create file
+    FILE *fp = fopen(filename, "w");
+
+
+    //while(1){
+        strcpy(buf, "");
+        
+        // read packets
+        bytes_recv = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr*) &their_addr, &addr_len);
+        if (bytes_recv == -1){
+            perror("recvfrom");
+            exit(1);
+        }
+
+        // create struct
+        struct packet frag;
+        frag.total_frag = atoi(strtok(buf, ":"));
+        frag.frag_no = atoi(strtok(NULL, ":"));
+        frag.size = atoi(strtok(NULL, ":"));
+        frag.filename = strtok(NULL, ":");
+
+        int header_size = sizeof(frag.total_frag + frag.frag_no + frag.size + frag.filename + 4);
+        memcpy(frag.filedata, buf + header_size, frag.size);
+
+        printf("file data: %s\n", frag.filedata);
+
+
+
+
+    
+
+    
     close(sockfd);
     return 0;
 }

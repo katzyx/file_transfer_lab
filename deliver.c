@@ -84,13 +84,12 @@ int main(int argc, const char* argv[]){
     // check existence of file
     int exist;
     int bytes_sent, bytes_recv;
+    strcat(command, " ");
+    strcat(command, filename); 
     char *msg = command;
 
     // start time
     clock_t rtt = clock();
-
-
-
 
     if (access(filename, F_OK) != -1){
         // send ftp to server
@@ -177,12 +176,12 @@ int main(int argc, const char* argv[]){
         {
             break;
         }
-    
 
     }
 
     freeaddrinfo(servinfo);
     close(sockfd);
+    fclose(fp);
 
     return 0;
 }

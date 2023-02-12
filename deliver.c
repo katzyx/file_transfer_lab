@@ -150,10 +150,12 @@ int main(int argc, const char* argv[]){
     char packet[2048];
 
     while(1){
-     
+        
         frag.size = fread(frag.filedata, sizeof(char), 1000, fp);
         int header_size = sprintf(packet, "%d:%d:%d:%s:", frag.total_frag, frag.frag_no, frag.size, filename);
         memcpy(packet + header_size, frag.filedata, frag.size);
+
+        printf("\n PACKET packet: %s \n", packet);
 
         // send file
         bytes_sent = sendto(sockfd, packet, header_size + frag.size, 0, p->ai_addr, p->ai_addrlen);
@@ -171,7 +173,12 @@ int main(int argc, const char* argv[]){
         
         frag.frag_no++;
 
-        printf("packet: %s", packet);
+        if(frag.frag_no == frag.total_frag + 1)
+        {
+            break;
+        }
+    
+
     }
 
     freeaddrinfo(servinfo);

@@ -11,6 +11,9 @@
 
 #define buff 100
 
+// REFERENCE TAKEN FROM BEEJ'S GUIDE TO NETWORK PROGRAMMING
+
+
 int main(int argc, const char* argv[]){
 
 
@@ -32,7 +35,7 @@ int main(int argc, const char* argv[]){
 
 
     memset(&hints, 0, sizeof hints); // make sure struct is empty
-    hints.ai_family = AF_UNSPEC; // doesn't matter IPv4 or IPv6
+    hints.ai_family = AF_INET; // doesn't matter IPv4 or IPv6
     hints.ai_socktype = SOCK_DGRAM; // UDP stream sockets
     hints.ai_flags = AI_PASSIVE; // fill in IP
 
@@ -66,8 +69,6 @@ int main(int argc, const char* argv[]){
     scanf("%s", command);
     scanf("%s", filename);
 
-    printf("%s\n", filename);    
-
     if (strcmp(command, "ftp") != 0){
         exit(1);
     }
@@ -82,6 +83,7 @@ int main(int argc, const char* argv[]){
 
     }
     else{
+        printf("File \"%s\" does not exist.\n", filename);
         exit(0);
     }
 

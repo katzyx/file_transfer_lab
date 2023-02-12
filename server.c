@@ -9,6 +9,8 @@
 #include <netdb.h>
 #include <unistd.h>
 
+// REFERENCE TAKEN FROM BEEJ'S GUIDE TO NETWORK PROGRAMMING
+
 void *get_in_addr(struct sockaddr *sa){
     if (sa->sa_family == AF_INET){
         return &(((struct sockaddr_in*)sa)->sin_addr);
@@ -32,7 +34,7 @@ int main(int argc, char* argv[]){
     }
 
     memset(&hints, 0, sizeof hints); // make sure struct is empty
-    hints.ai_family = AF_INET6; // doesn't matter IPv4 or IPv6
+    hints.ai_family = AF_INET; // doesn't matter IPv4 or IPv6
     hints.ai_socktype = SOCK_DGRAM; // UDP stream sockets
     hints.ai_flags = AI_PASSIVE; // fill in IP
 

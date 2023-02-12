@@ -8,15 +8,20 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <time.h>
 
 #define buff 100
 
 // REFERENCE TAKEN FROM BEEJ'S GUIDE TO NETWORK PROGRAMMING
-
+struct packet{
+        unsigned int total_frag;
+        unsigned int frag_no;
+        unsigned int size;
+        char* filename;
+        char filedata[1000];
+};
 
 int main(int argc, const char* argv[]){
-
-
     int sockfd;
     int status;
     int numbytes;
@@ -27,6 +32,7 @@ int main(int argc, const char* argv[]){
     struct sockaddr_storage their_addr;
     socklen_t addr_len;
 
+    
 
     if (argc != 3){
         fprintf(stderr, "number of arguments eror\n");
@@ -44,6 +50,7 @@ int main(int argc, const char* argv[]){
         fprintf(stderr, "getaddrinfo error %s\n", gai_strerror(status));
         exit(1);
     }
+
 
     // loop through all results and make a successful socket connection
     for (p = servinfo; p != NULL; p = p->ai_next){
@@ -72,10 +79,18 @@ int main(int argc, const char* argv[]){
     if (strcmp(command, "ftp") != 0){
         exit(1);
     }
+
+
     // check existence of file
     int exist;
     int bytes_sent, bytes_recv;
     char *msg = command;
+
+    // start time
+    clock_t rtt = clock();
+
+
+
 
     if (access(filename, F_OK) != -1){
         // send ftp to server
@@ -91,6 +106,11 @@ int main(int argc, const char* argv[]){
     addr_len = sizeof their_addr;
     bytes_recv = recvfrom(sockfd, recv_buff, sizeof(recv_buff), 0, (struct sockaddr*) &their_addr, &addr_len);
    
+   // end time
+   rtt = clock() - rtt;
+   printf("RTT: %.3f\n", ((float) rtt * 1000) / CLOCKS_PER_SEC);
+
+ 
    
     if (bytes_recv == -1){
         perror("recvfrom");
@@ -106,10 +126,52 @@ int main(int argc, const char* argv[]){
     if (strcmp(recv_buff, to_cmp) == 0){
 
         printf("A file transfer can start.\n");
+
     }
     else{
         printf("exit\n");
         exit(0);
+    }
+
+    // START FILE TRANSFER:
+    // get size of file
+    FILE* fp = fopen(filename, "r");
+
+    fseek(fp, 0, SEEK_END); // seek end of file
+    int file_size = ftell(fp); // get file pointer
+    fseek(fp, 0, SEEK_SET); // seek beginning
+
+    struct packet frag;
+    frag.total_frag = (int) (file_size / 1000) + 1;
+
+    // initialize frag number
+    frag.frag_no = 1;
+
+    char packet[2048];
+
+    while(1){
+     
+        frag.size = fread(frag.filedata, sizeof(char), 1000, fp);
+        int header_size = sprintf(packet, "%d:%d:%d:%s:", frag.total_frag, frag.frag_no, frag.size, filename);
+        memcpy(packet + header_size, frag.filedata, frag.size);
+
+        // send file
+        bytes_sent = sendto(sockfd, packet, header_size + frag.size, 0, p->ai_addr, p->ai_addrlen);
+
+        // acknowledge
+        // receive message from server
+        strcpy(recv_buff, "");
+        addr_len = sizeof their_addr;
+        bytes_recv = recvfrom(sockfd, recv_buff, sizeof(recv_buff), 0, (struct sockaddr*) &their_addr, &addr_len);
+        
+        if (bytes_recv == -1){
+            perror("recvfrom");
+            exit(1);
+        }
+        
+        frag.frag_no++;
+
+        printf("packet: %s", packet);
     }
 
     freeaddrinfo(servinfo);

@@ -87,15 +87,10 @@ int main(int argc, char* argv[]){
 
     printf("server: packet received\n");
 
-    // char *protocol = strtok(buf, " ");
-    
-    // char *filename = strtok(NULL, " ");
-    // strcat(filename, "\0");
+    char *protocol = strtok(buf, " ");
+    char *filename = strtok(NULL, " ");
 
-    char buf2[2048];
-    addr_len = sizeof their_addr;
-    bytes_recv = recvfrom(sockfd, buf2, sizeof(buf2), 0, (struct sockaddr*) &their_addr, &addr_len);
-    
+    // printf("file name: %s\n", filename);
 
 
     char to_cmp[100];
@@ -121,11 +116,8 @@ int main(int argc, char* argv[]){
     }
 
     
-    printf("file name: %s\n", buf2);
-
-    
     // create file
-    FILE *fp = fopen(buf2, "wb+");
+    FILE *fp = NULL;
 
 
     while(1){
@@ -152,6 +144,13 @@ int main(int argc, char* argv[]){
         // printf("total fragments %d, fragment number %d, fragment size %d, fragment name %s\n", frag.total_frag, frag.frag_no, frag.size, frag.filename);
 
         memcpy(frag.filedata, buf + hd_size[0], frag.size);
+
+
+        if(frag.frag_no == 1)
+        {
+            fp = fopen("hi", "wb+");
+        }
+
         fwrite(frag.filedata, sizeof(char), frag.size, fp);
         // fprintf(fp, "%s", frag.filedata);
 

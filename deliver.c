@@ -94,15 +94,12 @@ int main(int argc, const char* argv[]){
     if (access(filename, F_OK) != -1){
         // send ftp to server
         bytes_sent = sendto(sockfd, msg, strlen(msg), 0, p->ai_addr, p->ai_addrlen);
-        char* msg2 = filename;
-        bytes_sent = sendto(sockfd, msg2, strlen(msg2), 0, p->ai_addr, p->ai_addrlen);
 
     }
     else{
         printf("File \"%s\" does not exist.\n", filename);
         exit(0);
     }
-    
 
     // receive message from server
     addr_len = sizeof their_addr;

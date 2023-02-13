@@ -154,20 +154,31 @@ int main(int argc, const char* argv[]){
         int header_size = sprintf(packet, "%d:%d:%d:%s:", frag.total_frag, frag.frag_no, frag.size, filename);
         memcpy(packet + header_size, frag.filedata, frag.size);
 
-        printf("\n PACKET packet: %s \n", packet);
+        // printf("\n PACKET packet: %s \n", packet);
+
+        // send header bytes
+        int hd_size[1];
+        hd_size[0] = header_size;
+        bytes_sent = sendto(sockfd, hd_size, sizeof(hd_size), 0, (struct sockaddr*) &their_addr, addr_len);
 
         // send file
-        bytes_sent = sendto(sockfd, packet, header_size + frag.size, 0, p->ai_addr, p->ai_addrlen);
+        bytes_sent = sendto(sockfd, packet, header_size + frag.size, 0, (struct sockaddr*) &their_addr, addr_len);
 
         // acknowledge
-        // receive message from server
+
+        // receive ACK/NACK from server
         strcpy(recv_buff, "");
         addr_len = sizeof their_addr;
+        
         bytes_recv = recvfrom(sockfd, recv_buff, sizeof(recv_buff), 0, (struct sockaddr*) &their_addr, &addr_len);
         
         if (bytes_recv == -1){
             perror("recvfrom");
             exit(1);
+        }
+        if ( recv_buff == "NACK")
+        {
+            frag.frag_no--;
         }
         
         frag.frag_no++;

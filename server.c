@@ -31,7 +31,7 @@ int main(int argc, char* argv[]){
     int status;
     int bytes_recv;
     struct sockaddr_storage their_addr;
-    char buf[100];
+    char buf[2048];
     socklen_t addr_len;
     char s[INET6_ADDRSTRLEN];
 
@@ -90,7 +90,7 @@ int main(int argc, char* argv[]){
     char *protocol = strtok(buf, " ");
     char *filename = strtok(NULL, " ");
 
-    printf("file name: %s\n", filename);
+    // printf("file name: %s\n", filename);
 
 
     char to_cmp[100];
@@ -117,14 +117,19 @@ int main(int argc, char* argv[]){
 
     
     // create file
-    FILE *fp = fopen(filename, "w");
+    FILE *fp = fopen(filename, "wb+");
 
 
-    //while(1){
+    while(1){
         strcpy(buf, "");
+        
+        // receive header size
+        int hd_size[1];
+        bytes_recv = recvfrom(sockfd, hd_size, sizeof(hd_size), 0, (struct sockaddr*) &their_addr, &addr_len);
         
         // read packets
         bytes_recv = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr*) &their_addr, &addr_len);
+
         if (bytes_recv == -1){
             perror("recvfrom");
             exit(1);
@@ -136,18 +141,29 @@ int main(int argc, char* argv[]){
         frag.frag_no = atoi(strtok(NULL, ":"));
         frag.size = atoi(strtok(NULL, ":"));
         frag.filename = strtok(NULL, ":");
+        // printf("total fragments %d, fragment number %d, fragment size %d, fragment name %s\n", frag.total_frag, frag.frag_no, frag.size, frag.filename);
 
-        int header_size = sizeof(frag.total_frag + frag.frag_no + frag.size + frag.filename + 4);
-        memcpy(frag.filedata, buf + header_size, frag.size);
+        memcpy(frag.filedata, buf + hd_size[0], frag.size);
+        fwrite(frag.filedata, sizeof(char), frag.size, fp);
+        // fprintf(fp, "%s", frag.filedata);
 
-        printf("file data: %s\n", frag.filedata);
+        // printf("file data: %s\n", frag.filedata);
+        char* msg = "ACK";
+        bytes_sent = sendto(sockfd, msg, strlen(msg), 0, (struct sockaddr*) &their_addr, addr_len);
+        if (bytes_sent == -1){
+            perror("sendto");
+            exit(1);
+        }
 
-
-
+        if(frag.frag_no == frag.total_frag)
+        {
+            break;
+        }
 
     
-
+    }
     
+    fclose(fp);
     close(sockfd);
     return 0;
 }

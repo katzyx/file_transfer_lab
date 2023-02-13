@@ -87,10 +87,15 @@ int main(int argc, char* argv[]){
 
     printf("server: packet received\n");
 
-    char *protocol = strtok(buf, " ");
-    char *filename = strtok(NULL, " ");
+    // char *protocol = strtok(buf, " ");
+    
+    // char *filename = strtok(NULL, " ");
+    // strcat(filename, "\0");
 
-    // printf("file name: %s\n", filename);
+    char buf2[2048];
+    addr_len = sizeof their_addr;
+    bytes_recv = recvfrom(sockfd, buf2, sizeof(buf2), 0, (struct sockaddr*) &their_addr, &addr_len);
+    
 
 
     char to_cmp[100];
@@ -116,8 +121,11 @@ int main(int argc, char* argv[]){
     }
 
     
+    printf("file name: %s\n", buf2);
+
+    
     // create file
-    FILE *fp = fopen(filename, "wb+");
+    FILE *fp = fopen(buf2, "wb+");
 
 
     while(1){

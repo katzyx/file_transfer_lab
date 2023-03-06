@@ -152,24 +152,39 @@ int main(int argc, char* argv[]){
             fp = fopen("hello", "wb+");
         }
 
-        fwrite(frag.filedata, sizeof(char), frag.size, fp);
-        // fprintf(fp, "%s", frag.filedata);
+        float random = (float) rand() / (float) RAND_MAX;
+        printf("random variable: %f\n", random);
 
-        // printf("file data: %s\n", frag.filedata);
-        char* msg = "ACK";
-        bytes_sent = sendto(sockfd, msg, strlen(msg), 0, (struct sockaddr*) &their_addr, addr_len);
-        if (bytes_sent == -1){
-            perror("sendto");
-            exit(1);
+        if(random > 0.4){
+            // send ack
+
+            fwrite(frag.filedata, sizeof(char), frag.size, fp);
+            // fprintf(fp, "%s", frag.filedata);
+
+            // printf("file data: %s\n", frag.filedata);
+            char* msg = "ACK";
+            bytes_sent = sendto(sockfd, msg, strlen(msg), 0, (struct sockaddr*) &their_addr, addr_len);
+            if (bytes_sent == -1){
+                perror("sendto");
+                exit(1);
+            }
+
+            if(frag.frag_no == frag.total_frag)
+            {
+                break;
+            }
+
+        }
+        else{
+            printf("Packet not received, send again...\n");
         }
 
-        if(frag.frag_no == frag.total_frag)
-        {
-            break;
-        }
+        
 
     
     }
+
+    printf("File has been received.\n");
     
     fclose(fp);
     close(sockfd);

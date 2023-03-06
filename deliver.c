@@ -105,11 +105,10 @@ int main(int argc, const char* argv[]){
     addr_len = sizeof their_addr;
     bytes_recv = recvfrom(sockfd, recv_buff, sizeof(recv_buff), 0, (struct sockaddr*) &their_addr, &addr_len);
    
-   // end time
-   rtt = clock() - rtt;
-   printf("RTT: %.3f\n", ((float) rtt * 1000) / CLOCKS_PER_SEC);
-
- 
+    // end time
+    rtt = clock() - rtt;
+    printf("RTT: %.3f ms\n", ((float) rtt * 1000) / CLOCKS_PER_SEC);
+    
    
     if (bytes_recv == -1){
         perror("recvfrom");
@@ -132,12 +131,24 @@ int main(int argc, const char* argv[]){
         exit(0);
     }
 
+    struct timeval time_out;
+
+    if(rtt / CLOCKS_PER_SEC > 1)
+        time_out.tv_sec = rtt / CLOCKS_PER_SEC;
+    else    
+        time_out.tv_sec = 1;
+    time_out.tv_usec = 0;
+
+    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &time_out, sizeof(time_out));
+
     // START FILE TRANSFER:
     // get size of file
     FILE* fp = fopen(filename, "r");
 
     fseek(fp, 0, SEEK_END); // seek end of file
     int file_size = ftell(fp); // get file pointer
+    int size_sent = 0;
+    int data_offset;
     fseek(fp, 0, SEEK_SET); // seek beginning
 
     struct packet frag;
@@ -148,13 +159,17 @@ int main(int argc, const char* argv[]){
 
     char packet[2048];
 
-    while(1){
+    while(size_sent < file_size){
         
         frag.size = fread(frag.filedata, sizeof(char), 1000, fp);
         int header_size = sprintf(packet, "%d:%d:%d:%s:", frag.total_frag, frag.frag_no, frag.size, filename);
         memcpy(packet + header_size, frag.filedata, frag.size);
 
         // printf("\n PACKET packet: %s \n", packet);
+        if(file_size - size_sent > 1000)
+            data_offset = 1000;
+        else
+            data_offset = file_size - size_sent;
 
         // send header bytes
         int hd_size[1];
@@ -173,20 +188,32 @@ int main(int argc, const char* argv[]){
         bytes_recv = recvfrom(sockfd, recv_buff, sizeof(recv_buff), 0, (struct sockaddr*) &their_addr, &addr_len);
         
         if (bytes_recv == -1){
-            perror("recvfrom");
-            exit(1);
+
+            // exit(1);
+
+            if(errno == EAGAIN||errno == EWOULDBLOCK)
+            {
+                printf("Timed Out: sending again... \n");
+                fseek(fp, -data_offset, SEEK_CUR);
+                continue;
+            }
+            else{
+                perror("recvfrom");
+            }
         }
         if ( recv_buff == "NACK")
         {
+            printf("Packet not Acknowledged by server.\n");
+            fseek(fp, -data_offset, SEEK_CUR);
             frag.frag_no--;
         }
-        
-        frag.frag_no++;
-
-        if(frag.frag_no == frag.total_frag + 1)
+        else
         {
-            break;
+            printf("Packet Acknowledged by server.\n");
+            size_sent = size_sent + data_offset;
+            frag.frag_no++;
         }
+
 
     }
 

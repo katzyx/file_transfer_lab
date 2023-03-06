@@ -148,7 +148,8 @@ int main(int argc, char* argv[]){
 
         if(frag.frag_no == 1)
         {
-            fp = fopen(frag.filename, "wb+");
+            // fp = fopen(frag.filename, "wb+");
+            fp = fopen("hello", "wb+");
         }
 
         fwrite(frag.filedata, sizeof(char), frag.size, fp);

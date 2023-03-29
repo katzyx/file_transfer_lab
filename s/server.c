@@ -155,7 +155,7 @@ int main(int argc, char* argv[]){
         float random = (float) rand() / (float) RAND_MAX;
         printf("random variable: %f\n", random);
 
-        if(random > 0.4){
+        if(random > 0.02){
             // send ack
 
             fwrite(frag.filedata, sizeof(char), frag.size, fp);
